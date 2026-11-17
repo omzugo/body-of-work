@@ -2,7 +2,7 @@
 
 A live webcam collage: your face, hands and body, rebuilt from scraps of paintings.
 
-**Open it:** https://omzugo.github.io/painted-face/ (allow the camera; nothing leaves your browser)
+**Open it:** https://omzugo.github.io/body-of-work/ (allow the camera; nothing leaves your browser)
 
 The webcam is tracked in the browser with [ml5.js](https://ml5js.org) (face, hands, body). Each
 feature becomes a simple shape (an oval for an eye, a capsule for a finger bone), filled with a
