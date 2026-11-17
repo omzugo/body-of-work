@@ -10,17 +10,7 @@
 // (angles in radians: which way the scrap's long side runs in the painting)
 
 const CUT_MARGIN = 1.3;
-
-// Parts that have been renamed (new name: old name). Decisions saved under the old name are
-// moved to the new one whenever a page loads, so a rename never loses review work.
-const RENAMED = { chest: "torso" };
-function migrateCuration(curation) {
-  for (const [now, before] of Object.entries(RENAMED)) {
-    if (curation[before] && !curation[now]) curation[now] = curation[before];
-    delete curation[before];
-  }
-  return curation;
-} // pieces are cut this much wider than W (same as MARGIN in build_parts.py)
+ // pieces are cut this much wider than W (same as MARGIN in build_parts.py)
 
 // A scrap's name that survives rebuilding the pools: which painting, where, how big.
 function scrapId(painting, x, y, L) {
