@@ -1,45 +1,30 @@
-// BODY OF WORK — you (and a friend), live, collaged from scraps of paintings.
-//
-// Every frame, in order (each step has its own file):
-//   1. track.js    the webcam's faces, hands and bodies, sorted into people
-//   2. shapes.js   each body part becomes a simple shape (pieces.js says which)…
-//   3. shapes.js   …smoothed, fading in and out
-//   4. choose.js   each shape takes a scrap you approved for its part (review.html)
-//   5. draw.js     each scrap is cut to its shape and laid on it
-//   6. draw.js     drawn on white, body → face → hands, mirrored like a mirror
-// The scraps were cut and reviewed beforehand (tools/, review.html).
+let MAX_PEOPLE = 2;
+let SWAP_EVERY = 0.5;
+let STEADY = 1.0;
+let RESPONSIVE = 0.01;
+let FADE_OUT = 0.35;
+let FADE_IN = 0.15;
+let MARGIN = CUT_MARGIN;
+let MOUTH_OPENS = 0.25;
+let MOUTH_CLOSES = 0.15;
+let EMPTY_GRAY = 200;
+let showShapes = false;
+let showVideo = false;
+let showCredits = false;
+let showHelp = false;
 
-// ---------- knobs to play with ----------
-let MAX_PEOPLE = 2;    // how many people to collage at once
-let SWAP_EVERY = 0.5;  // seconds between swapping one shape's scrap (they take turns, so with
-                       // ~60 shapes each one keeps its painting for about half a minute)
-let STEADY = 1.0;      // how still shapes sit when you're still: lower = steadier, but laggier
-let RESPONSIVE = 0.01; // how quickly they catch up when you move fast: higher = snappier
-let FADE_OUT = 0.35;   // seconds a shape takes to dissolve where it was, once its tracker loses it
-let FADE_IN = 0.15;    // seconds a shape takes to appear
-let MARGIN = CUT_MARGIN; // pieces are cut this much wider than the object (see curation.js)
-let MOUTH_OPENS = 0.25;  // lip gap / mouth width above which the mouth counts as open…
-let MOUTH_CLOSES = 0.15; // …and below which it counts as closed again (the gap stops flicker)
-let EMPTY_GRAY = 200;     // the gray for shapes with no scrap yet (0 = black, 255 = white)
-let showShapes = false;   // outline every shape (press s)
-let showVideo = false;    // faint webcam underneath (press v)
-let showCredits = false;  // the latest swap's painting (press c)
-let showHelp = false;     // the key list (press h)
-
-// ---------- things the program keeps track of ----------
 let video;
-let tracked = { faces: [], hands: [], bodies: [] }; // latest results from each tracker
-let people = [];       // per person slot: {face, leftHand, rightHand, body} (any can be null)
-let pieces = [];       // every shape of every person: {def, who, f: smoothed frame, patch, next, flip}
-let lastAt = [];       // per person slot: where their face, hands and body were last seen
-let lib;               // {paintings: credits, parts: {part: {shape, items}}}
+let tracked = { faces: [], hands: [], bodies: [] };
+let people = [];
+let pieces = [];
+let lastAt = [];
+let lib;
 let nextSwap = 0, swapTurn = 0, lastSwap = null, lastDrawAt = null;
 
 async function setup() {
   createCanvas(windowWidth, windowHeight);
-  document.fonts.load('15px "Google Sans"'); // fetch the font now, so the first message uses it
+  document.fonts.load('15px "Google Sans"');
 
-  // index.html?test=some/image.jpg uses a still image instead of the webcam (handy for testing).
   const testImage = new URLSearchParams(location.search).get("test");
   if (testImage) {
     video = await loadImage(testImage);
@@ -49,7 +34,6 @@ async function setup() {
     video.hide();
   }
 
-  // the scrap pools from tools/build_parts.py, with your review decisions applied (curation.js)
   const curation = await fetch("library/curation.json").then((r) => (r.ok ? r.json() : {})).catch(() => ({}));
   lib = {
     paintings: (await (await fetch("library/paintings.json")).json()).paintings,
@@ -59,22 +43,22 @@ async function setup() {
     for (const def of PIECES) pieces.push({ def, who, f: null, patch: null, next: null, flip: false });
   }
 
-  await startTracking(); // track.js
+  await startTracking();
 }
 
 function draw() {
   background(255);
   if (!lib) return message("loading");
 
-  sortIntoPeople();  // step 1: which face / hands / body belong to whom
-  updateShapes();    // steps 2–3: points → shapes, smoothed, fading in and out
+  sortIntoPeople();
+  updateShapes();
   if (!pieces.some((p) => p.f)) return message("looking");
-  swapSome();        // step 4: choose scraps
+  swapSome();
 
   push();
-  toScreen();        // step 6: webcam pixels → screen, mirrored like a mirror
+  toScreen();
   if (showVideo) { tint(255, 60); image(video, 0, 0); noTint(); }
-  for (const p of pieces) if (p.f) p.patch ? drawPiece(p) : drawEmpty(p); // step 5: fill
+  for (const p of pieces) if (p.f) p.patch ? drawPiece(p) : drawEmpty(p);
   if (showShapes) for (const p of pieces) if (p.f) drawShapeOutline(p);
   pop();
 
@@ -108,11 +92,10 @@ function drawHelp() {
        "h      hide this help", 12, 12);
 }
 
-// A quiet status line in the middle of the screen ("looking", "loading").
 function message(t) {
   noStroke();
-  fill(0, 128); // black at 50% opacity
-  textFont("Google Sans"); // loaded from Google Fonts in index.html
+  fill(0, 128);
+  textFont("Google Sans");
   textSize(15);
   textAlign(CENTER, CENTER);
   text(t, width / 2, height / 2);
